@@ -1,0 +1,140 @@
+<!DOCTYPE html><html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>TOLE2 Li</title>
+<script src="lib/xlsx.full.min.js"></script><script src="lib/mammoth.browser.min.js"></script><script src="lib/jspdf.umd.min.js"></script><script src="lib/jszip.min.js"></script><script src="lib/pdf.min.js"></script>
+<script src="lib/firebase-app-compat.js"></script><script src="lib/firebase-auth-compat.js"></script><script src="lib/firebase-storage-compat.js"></script>
+<script src="firebase-config.js"></script>
+<style>
+:root{--bg:#fff;--fg:#1b1f24;--ac:#1a6ed8;--bd:#d8dde3;--sf:#f2f4f7;--ov:rgba(255,255,255,.88)}
+@media(prefers-color-scheme:dark){:root{--bg:#14171a;--fg:#e8eaed;--ac:#6aa8ff;--bd:#2c3238;--sf:#1e2226;--ov:rgba(20,23,26,.88)}}
+*{box-sizing:border-box}body{margin:0;font:16px system-ui,sans-serif;color:var(--fg);background:var(--bg) center/cover fixed;padding-top:env(safe-area-inset-top);padding-bottom:calc(60px + env(safe-area-inset-bottom))}
+header{display:flex;align-items:center;gap:10px;padding:10px 16px;font-weight:700;border-bottom:1px solid var(--bd);background:var(--ov)}
+#lg{height:30px;border-radius:6px;display:none}#st{margin-left:auto;font-size:12px;font-weight:400}
+nav{position:fixed;bottom:0;left:0;right:0;display:flex;background:var(--sf);border-top:1px solid var(--bd);padding-bottom:env(safe-area-inset-bottom)}
+nav button{flex:1;padding:14px 2px;border:0;background:none;color:var(--fg);font-size:12px}nav .on{color:var(--ac);font-weight:700}
+main{padding:12px}main section{background:var(--ov);padding:10px;border-radius:12px}
+.btn{display:inline-block;padding:10px 14px;margin:4px 4px 4px 0;border-radius:10px;border:1px solid var(--ac);background:var(--ac);color:#fff;font-size:15px}.btn.o{background:none;color:var(--ac)}
+.sc{overflow:auto;max-height:66vh;border:1px solid var(--bd);background:var(--bg)}table{border-collapse:collapse}td{border:1px solid var(--bd);min-width:70px;padding:6px;white-space:nowrap}
+#doc{min-height:50vh;border:1px solid var(--bd);padding:12px;border-radius:8px;background:var(--bg)}
+textarea{width:100%;min-height:60vh;background:var(--bg);color:var(--fg);border:1px solid var(--bd);border-radius:8px;padding:10px;font:14px monospace}
+.tb button{padding:8px 12px;margin:2px;border:1px solid var(--bd);background:var(--sf);color:var(--fg);border-radius:8px}
+#msg{font-size:13px;opacity:.75;margin:6px 0}img.th{height:90px;margin:3px;border-radius:6px}
+.row{display:flex;align-items:center;gap:8px;padding:10px 4px;border-bottom:1px solid var(--bd)}.row span{flex:1;overflow:hidden;text-overflow:ellipsis}
+#sp{position:fixed;inset:0;z-index:9;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--bg) center/cover;color:#fff;text-shadow:0 2px 8px #000;font-size:34px;font-weight:800}
+#sp img{height:90px;margin-bottom:12px;border-radius:16px}
+#rd{min-height:30vh;max-height:46vh;overflow:auto;padding:14px;border:1px solid var(--bd);border-radius:10px;background:var(--bg);font-size:19px;line-height:1.5;margin:8px 0}
+.ctl{display:flex;align-items:center;justify-content:center;gap:14px;margin:8px 0}.ctl button{width:54px;height:54px;border-radius:50%;border:1px solid var(--ac);background:none;color:var(--ac);font-size:22px}
+.ctl #pp{width:68px;height:68px;background:var(--ac);color:#fff;font-size:28px}#pg,#rate{width:100%}select{padding:8px;border-radius:8px;background:var(--bg);color:var(--fg);border:1px solid var(--bd)}
+</style></head><body>
+<div id="sp" onclick="this.remove()"><img id="spl" hidden>TOLE2 Li</div>
+<header><img id="lg" alt=""><span>TOLE2 Li</span><span id="st"></span></header>
+<main>
+<section id="p1">
+<label class="btn">Abrir archivo<input id="f" type="file" hidden accept=".xlsx,.xls,.csv,.docx,.txt,.md,.json,.html"></label>
+<button class="btn o" onclick="nuevo('xlsx')">Nuevo Excel</button><button class="btn o" onclick="nuevo('docx')">Nuevo Word</button>
+<div id="msg">Excel, CSV, Word (.docx) y texto. Funciona sin internet.</div><div id="ed"></div></section>
+<section id="p2" hidden><label class="btn">📷 Escanear<input id="c" type="file" hidden accept="image/*" capture="environment" multiple></label>
+<button class="btn o" onclick="pdf()">Guardar PDF</button><button class="btn o" onclick="imgs=[];th.innerHTML=''">Limpiar</button><div id="th"></div></section>
+<section id="p3" hidden><b>En este teléfono</b><div id="loc"></div><br><b>En la nube</b><div id="nube">Inicia sesión en Ajustes.</div></section>
+<section id="p4" hidden>
+<label class="chk"><input type="checkbox" id="acb" onchange="cfg.ac=this.checked;sv()"> Autocorrector activado</label><hr>
+<b>Imágenes</b><br>
+<label class="btn o">Logo<input type="file" hidden accept="image/*" onchange="img(this,'logo',256)"></label>
+<label class="btn o">Fondo de interfaz<input type="file" hidden accept="image/*" onchange="img(this,'fondo',900)"></label>
+<label class="btn o">Portada<input type="file" hidden accept="image/*" onchange="img(this,'portada',1000)"></label>
+<button class="btn o" onclick="cfg.logo=cfg.fondo=cfg.portada=null;sv();tema()">Quitar imágenes</button><hr>
+<b>Nube (Firebase)</b><div id="cu">Sin sesión</div>
+<button class="btn o" onclick="login()">Iniciar sesión / Crear cuenta</button><button class="btn o" onclick="fb&&fb.auth().signOut()">Salir</button></section>
+<section id="p5" hidden>
+<label class="btn">Abrir libro / archivo<input type="file" hidden accept=".epub,.pdf,.docx,.doc,.xlsx,.xls,.csv,.txt,.md,.html,.json" onchange="if(this.files[0])listen(this.files[0]);this.value=''"></label>
+<button class="btn o" onclick="cargarLibro(cur.name||'Documento',actual())">Leer documento abierto</button>
+<div id="bt" style="font-weight:700">Elige un libro o documento</div><div id="msg2" style="font-size:13px;opacity:.75"></div>
+<div id="rd"></div><input type="range" id="pg" min="0" max="0" value="0" onchange="ci=+this.value;pgo(0)">
+<div class="ctl"><button onclick="pgo(-5)">⏪</button><button onclick="pgo(-1)">⏮</button><button id="pp" onclick="pplay()">▶</button><button onclick="pgo(1)">⏭</button><button onclick="pgo(5)">⏩</button></div>
+Velocidad <span id="rv">1×</span><input type="range" id="rate" min="0.5" max="2" step="0.25" value="1" oninput="rv.textContent=this.value+'×'">
+<select id="lang"><option value="es-ES">Español (España)</option><option value="es-MX">Español (México)</option><option value="en-US">English</option><option value="pt-BR">Português</option><option value="fr-FR">Français</option><option value="it-IT">Italiano</option></select>
+<select id="slp" onchange="dormir(+this.value)"><option value="0">Sin temporizador</option><option value="15">Apagar en 15 min</option><option value="30">30 min</option><option value="60">60 min</option></select>
+</section></main>
+<nav><button data-t="1" class="on" onclick="tab(1)">📄 Docs</button><button data-t="2" onclick="tab(2)">📷 Escáner</button><button data-t="5" onclick="tab(5)">🎧 Escuchar</button><button data-t="3" onclick="tab(3)">📁 Archivos</button><button data-t="4" onclick="tab(4)">⚙ Ajustes</button></nav>
+<script>
+const $=id=>document.getElementById(id);let cur={},imgs=[],cfg={ac:true,...JSON.parse(localStorage.t2||'{}')};
+const sv=()=>{try{localStorage.t2=JSON.stringify(cfg)}catch(e){msg.textContent='Imagen muy grande'}};
+const SP='spellcheck="true" autocorrect="on" autocapitalize="sentences" lang="es"';
+function tab(n){for(let i=1;i<6;i++)$('p'+i).hidden=i!=n;document.querySelectorAll('nav button').forEach(b=>b.className=b.dataset.t==n?'on':'');if(n==3)lista()}
+/* tema e imágenes */
+function tema(){document.body.style.backgroundImage=cfg.fondo?`url(${cfg.fondo})`:'';lg.src=cfg.logo||'';lg.style.display=cfg.logo?'block':'none';
+spl.src=cfg.logo||'';spl.hidden=!cfg.logo;sp.style.backgroundImage=cfg.portada?`url(${cfg.portada})`:'';if(!cfg.portada)sp.style.background='#1a6ed8';acb.checked=cfg.ac}
+function img(inp,k,max){const fl=inp.files[0];if(!fl)return;const i=new Image();i.onload=()=>{const s=Math.min(1,max/Math.max(i.width,i.height)),c=document.createElement('canvas');c.width=i.width*s;c.height=i.height*s;c.getContext('2d').drawImage(i,0,0,c.width,c.height);cfg[k]=c.toDataURL(fl.type=='image/png'?'image/png':'image/jpeg',.85);sv();tema()};i.src=URL.createObjectURL(fl)}
+/* autocorrector (además del corrector del teclado) */
+const AC={xq:'porque',pq:'porque',q:'que',tmb:'también',tambien:'también',ademas:'además',asi:'así',aqui:'aquí',alli:'allí',ahi:'ahí',despues:'después',facil:'fácil',dificil:'difícil',numero:'número',telefono:'teléfono',codigo:'código',pagina:'página',informacion:'información',direccion:'dirección',ultimo:'último',maximo:'máximo',minimo:'mínimo',musica:'música',tecnologia:'tecnología',eso:'eso',teh:'the',hola:'hola'};
+function rep(w){let r=AC[w.toLowerCase()];if(!r||r==w)return null;if(w[0]!=w[0].toLowerCase())r=r[0].toUpperCase()+r.slice(1);return r}
+document.addEventListener('input',e=>{if(e.data!==' '||!cfg.ac)return;const t=e.target;
+if(t.tagName=='TEXTAREA'){const p=t.selectionStart,s=t.value.slice(0,p-1),m=s.match(/([A-Za-zÁÉÍÓÚáéíóúñÑ]+)$/);if(!m)return;const r=rep(m[1]);if(r){t.value=s.slice(0,m.index)+r+' '+t.value.slice(p);t.selectionStart=t.selectionEnd=m.index+r.length+1}}
+else{const sel=getSelection(),n=sel.anchorNode;if(!n||n.nodeType!=3)return;const o=sel.anchorOffset,s=n.data.slice(0,o-1),m=s.match(/([A-Za-zÁÉÍÓÚáéíóúñÑ]+)$/);if(!m)return;const r=rep(m[1]);if(r){n.data=s.slice(0,m.index)+r+' '+n.data.slice(o);sel.collapse(n,m.index+r.length+1)}}});
+/* almacenamiento local (sin internet) */
+const DB=new Promise(r=>{const q=indexedDB.open('t2',1);q.onupgradeneeded=()=>q.result.createObjectStore('f');q.onsuccess=()=>r(q.result)});
+const idb=async(m,k,v)=>{const d=await DB;return new Promise(r=>{const s=d.transaction('f',m=='get'||m=='keys'?'readonly':'readwrite').objectStore('f');const q=m=='keys'?s.getAllKeys():m=='put'?s.put(v,k):m=='delete'?s.delete(k):s.get(k);q.onsuccess=()=>r(q.result)})};
+async function lista(){const ks=await idb('keys');loc.innerHTML=ks.length?'':'Aún no hay archivos guardados.';
+ks.forEach(k=>{const d=document.createElement('div');d.className='row';d.innerHTML='<span></span><button class="btn o">Abrir</button><button class="btn o">☁</button><button class="btn o">✕</button>';
+d.firstChild.textContent=k;const b=d.querySelectorAll('button');b[0].onclick=async()=>{abrir(await idb('get',k));tab(1)};b[1].onclick=async()=>subir(await idb('get',k));b[2].onclick=async()=>{await idb('delete',k);lista()};loc.appendChild(d)})}
+/* nube */
+let fb=null;try{if(window.firebase&&FIREBASE_CONFIG.apiKey){firebase.initializeApp(FIREBASE_CONFIG);fb=firebase;fb.auth().onAuthStateChanged(u=>{cu.textContent=u?u.email:'Sin sesión';nube.innerHTML=u?'<button class="btn o" onclick="verNube()">Ver mis archivos en la nube</button>':'Inicia sesión en Ajustes.'})}}catch(e){}
+async function login(){if(!fb)return alert('Configura Firebase en www/firebase-config.js');const e=prompt('Correo'),p=e&&prompt('Contraseña (mín. 6)');if(!p)return;
+try{await fb.auth().signInWithEmailAndPassword(e,p)}catch(x){try{await fb.auth().createUserWithEmailAndPassword(e,p)}catch(y){alert(y.message)}}}
+async function subir(file){const u=fb&&fb.auth().currentUser;if(!u)return alert('Inicia sesión en Ajustes (necesitas internet)');try{await fb.storage().ref('u/'+u.uid+'/'+file.name).put(file);alert('Subido a la nube')}catch(e){alert(e.message)}}
+async function verNube(){const u=fb.auth().currentUser;try{const r=await fb.storage().ref('u/'+u.uid).listAll();nube.innerHTML='';r.items.forEach(it=>{const d=document.createElement('div');d.className='row';d.innerHTML='<span></span><button class="btn o">Abrir</button>';d.firstChild.textContent=it.name;
+d.lastChild.onclick=async()=>{const b=await (await fetch(await it.getDownloadURL())).blob();abrir(new File([b],it.name));tab(1)};nube.appendChild(d)});if(!r.items.length)nube.textContent='Vacío'}catch(e){nube.textContent='Sin conexión o error: '+e.message}}
+/* guardar */
+async function save(name,blob){try{await idb('put',name,new File([blob],name));const C=window.Capacitor;if(C&&C.isNativePlatform&&C.isNativePlatform()){
+const b64=await new Promise(r=>{const x=new FileReader();x.onload=()=>r(x.result.split(',')[1]);x.readAsDataURL(blob)});
+const w=await C.Plugins.Filesystem.writeFile({path:name,data:b64,directory:'CACHE'});await C.Plugins.Share.share({title:name,url:w.uri})}
+else{const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click()}msg.textContent='Guardado: '+name}catch(e){msg.textContent='Error al guardar: '+e.message}}
+/* editores */
+function gridHTML(ws){const r=XLSX.utils.decode_range(ws['!ref']||'A1:E20');let h='<table>';for(let i=r.s.r;i<=r.e.r;i++){h+='<tr>';for(let j=r.s.c;j<=r.e.c;j++){const c=ws[XLSX.utils.encode_cell({r:i,c:j})];h+=`<td contenteditable ${SP} data-r="${i}" data-c="${j}">`+(c?String(c.v).replace(/</g,'&lt;'):'')+'</td>'}h+='</tr>'}return h+'</table>'}
+function showSheet(k){cur.sheet=k;ed.innerHTML='<select onchange="grab();showSheet(this.value)" style="padding:8px">'+cur.wb.SheetNames.map(n=>'<option '+(n==k?'selected':'')+'>'+n+'</option>').join('')+'</select> <button class="btn" onclick="guardar()">Guardar</button><div class="sc">'+gridHTML(cur.wb.Sheets[k])+'</div>'}
+function grab(){if(cur.type!='x')return;const ws=cur.wb.Sheets[cur.sheet],rg=XLSX.utils.decode_range(ws['!ref']||'A1');document.querySelectorAll('td[data-r]').forEach(t=>{const a=XLSX.utils.encode_cell({r:+t.dataset.r,c:+t.dataset.c}),v=t.textContent,n=v!==''&&!isNaN(v);rg.e.r=Math.max(rg.e.r,+t.dataset.r);rg.e.c=Math.max(rg.e.c,+t.dataset.c);if(v==='')delete ws[a];else ws[a]={v:n?Number(v):v,t:n?'n':'s'}});ws['!ref']=XLSX.utils.encode_range(rg)}
+function showDoc(h){cur.type='d';ed.innerHTML='<div class="tb"><button onclick="document.execCommand(\'bold\')"><b>B</b></button><button onclick="document.execCommand(\'italic\')"><i>I</i></button><button onclick="document.execCommand(\'underline\')"><u>U</u></button><button onclick="document.execCommand(\'insertUnorderedList\')">• Lista</button><button class="btn" onclick="guardar()">Guardar</button></div><div id="doc" contenteditable '+SP+'>'+h+'</div>'}
+function showTxt(t){cur.type='t';ed.innerHTML='<button class="btn" onclick="guardar()">Guardar</button><textarea id="tx" '+SP+'></textarea>';tx.value=t}
+function nuevo(t){cur={name:t=='xlsx'?'nuevo.xlsx':'nuevo.docx'};tab(1);if(t=='xlsx'){cur.type='x';cur.wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(cur.wb,XLSX.utils.aoa_to_sheet([[]]),'Hoja1');showSheet('Hoja1')}else showDoc('<p>Escribe aquí…</p>')}
+async function abrir(fl){const ext=fl.name.split('.').pop().toLowerCase();cur={name:fl.name,ext};msg.textContent='Abierto: '+fl.name;
+try{if(['xlsx','xls','csv'].includes(ext)){cur.type='x';cur.wb=XLSX.read(await fl.arrayBuffer(),{type:'array'});showSheet(cur.wb.SheetNames[0])}
+else if(ext=='docx'){showDoc((await mammoth.convertToHtml({arrayBuffer:await fl.arrayBuffer()})).value)}
+else if(ext=='doc'){showDoc(await fl.text())}else showTxt(await fl.text())}catch(x){msg.textContent='No se pudo abrir: '+x.message}}
+f.onchange=e=>{if(e.target.files[0])abrir(e.target.files[0]);f.value=''};
+function guardar(){const b=cur.name.replace(/\.[^.]+$/,'');
+if(cur.type=='x'){grab();const csv=cur.ext=='csv';save(b+(csv?'.csv':'.xlsx'),new Blob([csv?XLSX.utils.sheet_to_csv(cur.wb.Sheets[cur.sheet]):XLSX.write(cur.wb,{bookType:'xlsx',type:'array'})]))}
+else if(cur.type=='d')save(b+'.doc',new Blob(['<html><head><meta charset="utf-8"></head><body>'+doc.innerHTML+'</body></html>'],{type:'application/msword'}));
+else save(cur.name,new Blob([tx.value],{type:'text/plain'}))}
+/* escáner */
+c.onchange=e=>{[...e.target.files].forEach(fl=>{const r=new FileReader();r.onload=()=>{imgs.push(r.result);const i=new Image();i.src=r.result;i.className='th';th.appendChild(i)};r.readAsDataURL(fl)});c.value=''};
+async function pdf(){if(!imgs.length)return;const{jsPDF}=window.jspdf,d=new jsPDF();
+for(let k=0;k<imgs.length;k++){const im=await new Promise(r=>{const i=new Image();i.onload=()=>r(i);i.src=imgs[k]});const W=d.internal.pageSize.getWidth(),H=d.internal.pageSize.getHeight(),s=Math.min(W/im.width,H/im.height);if(k)d.addPage();d.addImage(imgs[k],'JPEG',0,0,im.width*s,im.height*s)}
+save('escaneo-'+Date.now()+'.pdf',d.output('blob'))}
+/* audiolibro: lee en voz alta cualquier formato (incl. EPUB y PDF) */
+pdfjsLib.GlobalWorkerOptions.workerSrc='lib/pdf.worker.min.js';
+const TTS=()=>{const C=window.Capacitor;return C&&C.isNativePlatform&&C.isNativePlatform()?C.Plugins.TextToSpeech:null};
+let ch=[],ci=0,play=false,book='',tok=0,tm=null;
+function trozos(t){const o=[];t.replace(/\s+/g,' ').split(/(?<=[.!?…])\s+/).forEach(s=>{while(s.length>300){let k=s.lastIndexOf(' ',300);if(k<50)k=300;o.push(s.slice(0,k));s=s.slice(k).trim()}if(s)o.push(s)});return o}
+function actual(){if(cur.type=='d')return doc.innerText;if(cur.type=='t')return tx.value;if(cur.type=='x'){grab();return XLSX.utils.sheet_to_csv(cur.wb.Sheets[cur.sheet]).replace(/,/g,', ')}return ''}
+async function textoDe(fl){const ext=fl.name.split('.').pop().toLowerCase(),buf=()=>fl.arrayBuffer();
+if(ext=='epub'){const z=await JSZip.loadAsync(await buf()),P=new DOMParser(),rd=async n=>z.file(n)?await z.file(n).async('string'):'';
+const rf=P.parseFromString(await rd('META-INF/container.xml'),'text/xml').querySelector('rootfile').getAttribute('full-path'),dir=rf.includes('/')?rf.replace(/[^/]+$/,''):'';
+const op=P.parseFromString(await rd(rf),'text/xml'),mf={};op.querySelectorAll('manifest > item').forEach(i=>mf[i.getAttribute('id')]=i.getAttribute('href'));
+let t='';for(const r of op.querySelectorAll('spine > itemref')){const h=mf[r.getAttribute('idref')];if(!h)continue;const d=P.parseFromString(await rd(dir+decodeURIComponent(h.split('#')[0])),'text/html');d.querySelectorAll('script,style').forEach(e=>e.remove());t+=(d.body?d.body.textContent:'')+'\n\n'}return t}
+if(ext=='pdf'){const d=await pdfjsLib.getDocument({data:new Uint8Array(await buf())}).promise;let t='';for(let i=1;i<=d.numPages;i++){const c=await (await d.getPage(i)).getTextContent();t+=c.items.map(x=>x.str).join(' ')+'\n\n'}return t}
+if(ext=='docx')return (await mammoth.extractRawText({arrayBuffer:await buf()})).value;
+if(['xlsx','xls','csv'].includes(ext)){const w=XLSX.read(await buf(),{type:'array'});return w.SheetNames.map(n=>XLSX.utils.sheet_to_csv(w.Sheets[n]).replace(/,/g,', ')).join('\n\n')}
+const t=await fl.text();return ['html','doc'].includes(ext)?(new DOMParser().parseFromString(t,'text/html').body.textContent):t}
+async function listen(fl){msg2.textContent='Procesando '+fl.name+'…';try{const t=await textoDe(fl);if(!t.trim())return msg2.textContent='No se encontró texto (un PDF escaneado como imagen no se puede leer).';cargarLibro(fl.name,t)}catch(e){msg2.textContent='No se pudo leer: '+e.message}}
+function cargarLibro(name,text){if(!text||!text.trim())return msg2.textContent='No hay texto para leer.';pstop();book=name;ch=trozos(text);ci=+((JSON.parse(localStorage.t2p||'{}'))[name]||0);if(ci>=ch.length)ci=0;bt.textContent=name+' · '+ch.length+' fragmentos';msg2.textContent=ci?'Continuando donde lo dejaste':'';pint()}
+function pint(){rd.textContent=ch[ci]||'';pg.max=Math.max(ch.length-1,0);pg.value=ci;try{const p=JSON.parse(localStorage.t2p||'{}');p[book]=ci;localStorage.t2p=JSON.stringify(p)}catch(e){}}
+async function say(t){const o={text:t,lang:lang.value,rate:+rate.value,pitch:1,volume:1},n=TTS();if(n)return n.speak(o);
+return new Promise((res,rej)=>{if(!window.speechSynthesis)return rej(new Error('Este dispositivo no tiene voz instalada'));const u=new SpeechSynthesisUtterance(t);u.lang=o.lang;u.rate=o.rate;u.onend=res;u.onerror=()=>res();speechSynthesis.speak(u)})}
+async function pplay(){if(!ch.length)return;if(play)return pstop();play=true;const my=++tok;pp.textContent='⏸';
+while(play&&my==tok&&ci<ch.length){pint();try{await say(ch[ci])}catch(e){if(my==tok)msg2.textContent=e.message;break}if(my!=tok)return;ci++}
+if(my==tok){play=false;pp.textContent='▶';if(ci>=ch.length)ci=0;pint()}}
+function pstop(){play=false;tok++;pp.textContent='▶';const n=TTS();if(n)n.stop();else if(window.speechSynthesis)speechSynthesis.cancel()}
+function pgo(d){const w=play;pstop();ci=Math.max(0,Math.min(ch.length-1,ci+d));pint();if(w)setTimeout(pplay,200)}
+function dormir(m){clearTimeout(tm);if(m)tm=setTimeout(pstop,m*60000)}
+const net=()=>st.textContent=navigator.onLine?'● en línea':'○ sin internet';addEventListener('online',net);addEventListener('offline',net);net();tema();setTimeout(()=>sp.remove(),2500);
+</script></body></html>
